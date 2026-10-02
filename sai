@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Secure AI Development: installs, uninstalls, inspects and configures the
+# Docker sandbox wrappers for AI coding tools (see README.md).
+#
+# Usage: ./sai <command> [arguments]
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+# Loaded first so every later failure can be reported with log_error; if
+# log.sh itself is missing, bash reports it and set -e stops here.
+# shellcheck source=lib/log.sh
+source "$REPO_DIR/lib/log.sh"
+
+for lib in \
+  "$REPO_DIR/lib/path-utils.sh" \
+  "$REPO_DIR/lib/common.sh" \
+  "$REPO_DIR/lib/components.sh" \
+  "$REPO_DIR/lib/commands/install.sh" \
+  "$REPO_DIR/lib/commands/uninstall.sh" \
+  "$REPO_DIR/lib/commands/status.sh" \
+  "$REPO_DIR/lib/commands/config.sh" \
+  "$REPO_DIR/lib/commands/test.sh"; do
+  if [ ! -f "$lib" ]; then
+    log_error "could not find required file at $lib"
+    exit 1
+  fi
+  # shellcheck source=/dev/null
+  source "$lib"
+done
+
+usage() {
+  local tools_arg
+  tools_arg="<$(secure_ai_tools_names)|all>"
+  echo "Usage: sai <command> [arguments]"
+  echo
+  echo "Commands:"
+  printf '  %-45s %s\n' "install, i [$tools_arg]" "Install the sandbox wrappers and build their images (default: all, after confirmation)"
+  printf '  %-45s %s\n' "uninstall, u [$tools_arg]" "Remove the sandbox wrappers (default: all, after confirmation)"
+  printf '  %-45s %s\n' "status, s [$tools_arg]" "Show what is currently installed (default: all)"
+  printf '  %-45s %s\n' "config, c [$tools_arg]" "Show the container packages (default: all)"
+  printf '  %-45s %s\n' "config, c <tool|all> add|remove <cat> <pkgs>" "Add or remove packages (apt, npm) and rebuild the image (a, r also work)"
+  printf '  %-45s %s\n' "config, c <tool|all> reset" "Restore the default packages (asks first) and rebuild the images"
+  printf '  %-45s %s\n' "test, t [lint|suite]" "Run the linter and all test suites, or just the named one"
+  printf '  %-45s %s\n' "help, h" "Show this help"
+}
+
+main() {
+  discover_tools
+
+  local command_name="${1:-}"
+  [ "$#" -eq 0 ] || shift
+
+  case "$command_name" in
+    i | install) cmd_install "$@" ;;
+    u | uninstall) cmd_uninstall "$@" ;;
+    s | status) cmd_status "$@" ;;
+    c | config) cmd_config "$@" ;;
+    t | test) cmd_test "$@" ;;
+    h | help | -h | --help)
+      usage
+      ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

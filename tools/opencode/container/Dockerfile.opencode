@@ -1,0 +1,89 @@
+# Builder stage: compiles the real opencode v2 CLI from the official source
+# (github.com/anomalyco/opencode) at a pinned tag, using the same toolchain
+# and build script (packages/cli/script/build.ts) their own release CI uses.
+# Bun and the full monorepo checkout never make it into the final image --
+# only the resulting single binary does (see the final stage below).
+FROM oven/bun:1.4.2-slim AS builder
+
+ARG OPENCODE_TAG
+ARG OPENCODE_TARGET
+RUN test -n "$OPENCODE_TAG" && test -n "$OPENCODE_TARGET"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "$OPENCODE_TAG" https://github.com/anomalyco/opencode.git /build
+WORKDIR /build
+RUN bun install
+
+WORKDIR /build/packages/cli
+# --skip-web-ui: this sandbox only needs the CLI/TUI, not the bundled web UI
+# opencode can also serve; skipping it avoids building that frontend too.
+# script/build.ts names targets "opencode-<os>-<arch>[-baseline][-<abi>]"
+# (see its targetName()) but writes output under "cli-<os>-<arch>...", hence
+# the two different prefixes below for the same $OPENCODE_TARGET suffix.
+#
+# OPENCODE_VERSION is set explicitly because @opencode/script's own version
+# detection falls back to the current git branch name, which is empty here
+# (a --branch tag checkout leaves the clone in detached HEAD).
+RUN OPENCODE_VERSION="${OPENCODE_TAG#v}" bun ./script/build.ts --target="opencode-$OPENCODE_TARGET" --skip-web-ui
+
+# Final stage: the image actually run day to day, on a lightweight base that
+# only receives the compiled binary.
+FROM node:24-slim
+
+ARG OPENCODE_TAG
+ARG OPENCODE_TARGET
+# The package lists come from components.conf through 'sai config' (see
+# lib/components.sh).
+ARG APT_PACKAGES
+ARG NPM_PACKAGES
+LABEL org.opencode-sandbox.version="$OPENCODE_TAG"
+
+# The container is meant to be run with an arbitrary host UID (--user), which
+# is not known at build time. Everything under $HOME is therefore assigned to
+# group 0 with the owner's permissions, and the run script adds group 0 as a
+# supplementary group. This is the standard "arbitrary UID" pattern and works
+# identically on Linux and macOS hosts.
+#
+# .config/git is created explicitly *before* the installers run: otherwise it
+# is created by root as 0700 and git fails to read its attributes file,
+# emitting "unable to access '/home/node/.config/git/attributes'" on every
+# single invocation.
+
+# The "you are in a sandbox" banner plugin, baked to /opt rather than under
+# /home/node: the config dir is bind-mounted whole from the host by
+# tools/opencode/opencode.sh, which would shadow anything baked under it. The entrypoint
+# declares /opt/sandbox-banner through OPENCODE_CONFIG_CONTENT at startup
+# instead (see container/entrypoint.sh).
+COPY plugins/sandbox-banner /opt/sandbox-banner
+
+# Container entrypoint: banner declaration, signal forwarding, status
+# propagation (see container/entrypoint.sh).
+COPY entrypoint.sh /usr/local/bin/opencode-sandbox-entrypoint
+
+COPY --from=builder /build/packages/cli/dist/cli-${OPENCODE_TARGET}/bin/opencode /usr/local/bin/opencode
+
+# The four opencode dirs are bind-mounted whole from the host, so their
+# in-image content only matters for a direct docker run without those mounts.
+# They are created here so such a run finds them.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends $APT_PACKAGES \
+    && rm -rf /var/lib/apt/lists/* \
+    && { [ -z "$NPM_PACKAGES" ] || npm install -g $NPM_PACKAGES; } \
+    && mkdir -p /home/node/.config/opencode /home/node/.config/git \
+        /home/node/.local/share/opencode /home/node/.local/state/opencode \
+        /home/node/.cache/opencode \
+    && chmod +x /usr/local/bin/opencode /usr/local/bin/opencode-sandbox-entrypoint \
+    && touch /home/node/.config/git/attributes /home/node/.gitconfig \
+    && chown -R node:0 /home/node /opt/sandbox-banner \
+    && chmod -R g=u /home/node
+
+USER node
+WORKDIR /workspace
+
+# The wrapper always runs the container with -e HOME=/home/node, so the
+# entrypoint's $HOME-relative dirs resolve to the mount points the RUN above
+# created (see container/entrypoint.sh).
+ENTRYPOINT ["/usr/local/bin/opencode-sandbox-entrypoint"]

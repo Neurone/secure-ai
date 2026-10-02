@@ -1,0 +1,41 @@
+FROM node:24-slim
+
+# The container is meant to be run with an arbitrary host UID (--user), which
+# is not known at build time. Everything under $HOME is therefore assigned to
+# group 0 with the owner's permissions, and the run script adds group 0 as a
+# supplementary group. This is the standard "arbitrary UID" pattern and works
+# identically on Linux and macOS hosts.
+#
+# .config/git is created explicitly *before* the installers run: otherwise it
+# is created by root as 0700 and git fails to read its attributes file,
+# emitting "unable to access '/home/node/.config/git/attributes'" on every
+# single invocation.
+
+# The package lists come from components.conf through 'sai config' (see
+# lib/components.sh).
+ARG APT_PACKAGES
+ARG NPM_PACKAGES
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends $APT_PACKAGES \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g @anthropic-ai/claude-code $NPM_PACKAGES \
+    && mkdir -p /home/node/.config/git \
+    && HOME=/home/node claude install latest \
+    && if command -v cypress >/dev/null; then \
+        HOME=/home/node cypress install && HOME=/home/node cypress verify; \
+    fi \
+    && touch /home/node/.config/git/attributes /home/node/.gitconfig \
+    && chown -R node:0 /home/node \
+    && chmod -R g=u /home/node
+
+ENV PATH="/home/node/.local/bin:${PATH}"
+ENV CYPRESS_CACHE_FOLDER="/home/node/.cache/Cypress"
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+USER node
+WORKDIR /workspace
+
+ENTRYPOINT ["docker-entrypoint.sh"]
