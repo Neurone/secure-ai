@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/harness.sh"
 
 shim_dir_of() { printf '%s\n' "$1/.secure-ai/bin"; }
 
-echo "=== T1: nothing installed ==="
+section "T1: nothing installed"
 REC="$T/record/t1"
 run_status "$REC" "$T/home-t1" ""
 rc=$?
@@ -17,7 +17,7 @@ has_no_pattern "$REC/stdout.txt" 'shim: +installed' "no tool reported as install
 has_pattern "$REC/stdout.txt" 'PATH entry in startup files: +none' "no PATH entry"
 has_pattern "$REC/stdout.txt" 'Shim dir on current PATH: +no' "shim dir not on PATH"
 
-echo "=== T2: one tool installed, the other not ==="
+section "T2: one tool installed, the other not"
 REC="$T/record/t2"
 HOME_T2="$T/home-t2"
 run_install "$REC" "$HOME_T2" "$T/native" claude-code
@@ -37,12 +37,12 @@ has_pattern "$REC/opencode.section" 'state: +.*opencode \(absent\)' "opencode st
 has_pattern "$REC/stdout.txt" 'PATH entry in startup files: +.*\.zshrc' "PATH entry found in .zshrc"
 has_pattern "$REC/stdout.txt" 'Shim dir on current PATH: +no' "shim dir not on this PATH"
 
-echo "=== T3: shim dir on the current PATH ==="
+section "T3: shim dir on the current PATH"
 REC="$T/record/t3"
 run_status "$REC" "$HOME_T2" "$(shim_dir_of "$HOME_T2")"
 has_pattern "$REC/stdout.txt" 'Shim dir on current PATH: +yes' "shim dir on PATH"
 
-echo "=== T4: a single tool can be selected ==="
+section "T4: a single tool can be selected"
 REC="$T/record/t4"
 run_status "$REC" "$HOME_T2" "" claude-code
 rc=$?
@@ -50,19 +50,19 @@ exit_code_is "$rc" 0 "status succeeds"
 has_pattern "$REC/stdout.txt" '^claude-code$' "selected tool listed"
 has_no_pattern "$REC/stdout.txt" '^opencode$' "other tool not listed"
 
-echo "=== T5: unknown tool -> usage ==="
+section "T5: unknown tool -> usage"
 REC="$T/record/t5"
 run_status "$REC" "$HOME_T2" "" nonsense
 rc=$?
 exit_code_is "$rc" 1 "refused"
 has_pattern "$REC/stderr.txt" 'Usage: sai status' "usage printed"
 
-echo "=== T6: image not built ==="
+section "T6: image not built"
 REC="$T/record/t6"
 FAKE_IMAGE_STATE=absent run_status "$REC" "$HOME_T2" "" claude-code
 has_pattern "$REC/stdout.txt" 'image: +claude-code-sandbox.*not built' "reports the missing image"
 
-echo "=== T7: dangling <tool>-original ==="
+section "T7: dangling <tool>-original"
 REC="$T/record/t7"
 HOME_T7="$T/home-t7"
 DANGLING_NATIVE="$T/native-dangling-t7"
@@ -73,7 +73,7 @@ rm -f "$DANGLING_NATIVE/claude"
 run_status "$REC" "$HOME_T7" "" claude-code
 has_pattern "$REC/stdout.txt" 'original: +broken' "dangling original flagged"
 
-echo "=== T8: shim pointing somewhere else is stale ==="
+section "T8: shim pointing somewhere else is stale"
 REC="$T/record/t8"
 HOME_T8="$T/home-t8"
 mkdir -p "$(shim_dir_of "$HOME_T8")"
@@ -81,7 +81,7 @@ ln -s "$T/elsewhere/claude.sh" "$(shim_dir_of "$HOME_T8")/claude"
 run_status "$REC" "$HOME_T8" "" claude-code
 has_pattern "$REC/stdout.txt" "shim: +stale.*$T/elsewhere/claude.sh" "stale shim flagged with its target"
 
-echo "=== T9: a foreign file at the shim path is a conflict ==="
+section "T9: a foreign file at the shim path is a conflict"
 REC="$T/record/t9"
 HOME_T9="$T/home-t9"
 mkdir -p "$(shim_dir_of "$HOME_T9")"
@@ -90,7 +90,7 @@ run_status "$REC" "$HOME_T9" "" claude-code
 has_pattern "$REC/stdout.txt" 'shim: +conflict' "foreign file flagged"
 content_is "$(shim_dir_of "$HOME_T9")/claude" "mine" "foreign file untouched"
 
-echo "=== T10: status changes nothing ==="
+section "T10: status changes nothing"
 REC="$T/record/t10"
 snapshot_of() { (cd "$1" && find . -exec ls -ld {} + | sort && cat .zshrc); }
 snapshot_of "$HOME_T2" > "$REC.before"

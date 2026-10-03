@@ -11,7 +11,7 @@ overlay_of() { printf '%s\n' "$1/.secure-ai/$2/components.conf"; }
 
 export FAKE_TAGS_V2="v2.0.14"
 
-echo "=== C1: show every tool with the required markers ==="
+section "C1: show every tool with the required markers"
 REC="$T/record/c1"
 run_config "$REC" "$T/home-c1"
 rc=$?
@@ -27,7 +27,7 @@ has_line "$REC/opencode.section" "    jq (required)" "opencode: jq is required"
 has_line "$REC/opencode.section" "    (none)" "opencode: no npm package"
 path_absent "$REC/build.args" "showing builds nothing"
 
-echo "=== C2: show a single tool ==="
+section "C2: show a single tool"
 REC="$T/record/c2"
 run_config "$REC" "$T/home-c1" opencode
 rc=$?
@@ -35,7 +35,7 @@ exit_code_is "$rc" 0 "config opencode succeeds"
 has_line "$REC/stdout.txt" "opencode" "opencode listed"
 has_no_line "$REC/stdout.txt" "claude-code" "claude-code not listed"
 
-echo "=== C3: add a comma separated list rebuilds with the new packages ==="
+section "C3: add a comma separated list rebuilds with the new packages"
 REC="$T/record/c3"
 HOME_C3="$T/home-c3"
 run_config "$REC" "$HOME_C3" claude-code add apt nc,htop
@@ -49,7 +49,7 @@ has_line "$(overlay_of "$HOME_C3" claude-code)" "add apt htop" "overlay records 
 run_config "$REC" "$HOME_C3" claude-code
 has_line "$REC/stdout.txt" "    nc (added)" "show marks the added package"
 
-echo "=== C4: remove a default, then add it back ==="
+section "C4: remove a default, then add it back"
 REC="$T/record/c4"
 HOME_C4="$T/home-c4"
 run_config "$REC" "$HOME_C4" claude-code remove apt vim
@@ -65,7 +65,7 @@ exit_code_is "$rc" 0 "re-adding succeeds"
 has_pattern "$REC/build.args" '^APT_PACKAGES=.*\bvim\b' "vim back in the build"
 has_no_pattern "$(overlay_of "$HOME_C4" claude-code)" 'vim' "overlay no longer mentions vim"
 
-echo "=== C5: remove an added package drops its overlay entry ==="
+section "C5: remove an added package drops its overlay entry"
 REC="$T/record/c5"
 run_config "$REC" "$HOME_C3" claude-code remove apt nc
 rc=$?
@@ -73,7 +73,7 @@ exit_code_is "$rc" 0 "remove succeeds"
 has_no_pattern "$(overlay_of "$HOME_C3" claude-code)" 'nc' "overlay no longer mentions nc"
 has_line "$(overlay_of "$HOME_C3" claude-code)" "add apt htop" "other additions kept"
 
-echo "=== C6: an npm package can be removed by name ==="
+section "C6: an npm package can be removed by name"
 REC="$T/record/c6"
 HOME_C6="$T/home-c6"
 run_config "$REC" "$HOME_C6" claude-code remove npm cypress
@@ -82,7 +82,7 @@ exit_code_is "$rc" 0 "remove succeeds"
 has_line "$(overlay_of "$HOME_C6" claude-code)" "remove npm cypress@15.15.0" "overlay stores the full package"
 has_line "$REC/build.args" "NPM_PACKAGES=" "npm list is empty in the build"
 
-echo "=== C7: scoped npm packages are accepted ==="
+section "C7: scoped npm packages are accepted"
 REC="$T/record/c7"
 HOME_C7="$T/home-c7"
 run_config "$REC" "$HOME_C7" opencode add npm @scope/pkg@1.2.3
@@ -94,7 +94,7 @@ rc=$?
 exit_code_is "$rc" 0 "remove by name succeeds"
 has_no_pattern "$(overlay_of "$HOME_C7" opencode)" 'scope' "overlay no longer mentions it"
 
-echo "=== C8: shortcuts ==="
+section "C8: shortcuts"
 REC="$T/record/c8"
 HOME_C8="$T/home-c8"
 FAKE_DOCKER_RECORD="$REC" run_sai "$REC" "$HOME_C8" c opencode a apt nc
@@ -106,7 +106,7 @@ rc=$?
 exit_code_is "$rc" 0 "'sai c opencode r apt nc' succeeds"
 has_no_pattern "$(overlay_of "$HOME_C8" opencode)" 'nc' "alias 'r' removes"
 
-echo "=== C9: required packages cannot be removed ==="
+section "C9: required packages cannot be removed"
 REC="$T/record/c9"
 HOME_C9="$T/home-c9"
 run_config "$REC" "$HOME_C9" opencode remove apt jq
@@ -116,7 +116,7 @@ has_pattern "$REC/stderr.txt" "'jq' is required" "explains why"
 path_absent "$(overlay_of "$HOME_C9" opencode)" "overlay not written"
 path_absent "$REC/build.args" "no rebuild"
 
-echo "=== C10: removing an absent package is refused ==="
+section "C10: removing an absent package is refused"
 REC="$T/record/c10"
 run_config "$REC" "$HOME_C9" opencode remove apt nonsense
 rc=$?
@@ -127,7 +127,7 @@ run_config "$REC" "$HOME_C4" claude-code remove apt vim
 rc=$?
 exit_code_is "$rc" 1 "an already removed package is refused too"
 
-echo "=== C11: unknown category and invalid names are refused ==="
+section "C11: unknown category and invalid names are refused"
 REC="$T/record/c11"
 run_config "$REC" "$HOME_C9" opencode add pip requests
 rc=$?
@@ -143,7 +143,7 @@ exit_code_is "$rc" 1 "a name starting with '-' refused"
 path_absent "$(overlay_of "$HOME_C9" opencode)" "overlay not written"
 path_absent "$REC/build.args" "no rebuild"
 
-echo "=== C12: Docker down -> nothing written ==="
+section "C12: Docker down -> nothing written"
 REC="$T/record/c12"
 HOME_C12="$T/home-c12"
 FAKE_DOCKER_DOWN=1 run_config "$REC" "$HOME_C12" claude-code add apt nc
@@ -152,7 +152,7 @@ exit_code_is "$rc" 1 "refused"
 has_pattern "$REC/stderr.txt" 'Docker daemon is not running' "explains the daemon is down"
 path_absent "$(overlay_of "$HOME_C12" claude-code)" "overlay not written"
 
-echo "=== C13: adding a package already in the list does not rebuild ==="
+section "C13: adding a package already in the list does not rebuild"
 REC="$T/record/c13"
 run_config "$REC" "$HOME_C9" claude-code add apt curl
 rc=$?
@@ -161,7 +161,7 @@ has_pattern "$REC/stderr.txt" 'Nothing to change' "says nothing changed"
 path_absent "$REC/build.args" "no rebuild"
 path_absent "$(overlay_of "$HOME_C9" claude-code)" "overlay not written"
 
-echo "=== C14: a failed rebuild keeps the overlay and points to 'sai install' ==="
+section "C14: a failed rebuild keeps the overlay and points to 'sai install'"
 REC="$T/record/c14"
 HOME_C14="$T/home-c14"
 FAKE_BUILD_FAIL=1 run_config "$REC" "$HOME_C14" claude-code add apt nc
@@ -171,7 +171,7 @@ has_pattern "$REC/stderr.txt" 'fake build failure' "docker output replayed"
 has_pattern "$REC/stderr.txt" "Retry with 'sai install claude-code'" "tells how to retry"
 has_line "$(overlay_of "$HOME_C14" claude-code)" "add apt nc" "overlay kept"
 
-echo "=== C15: usage errors ==="
+section "C15: usage errors"
 REC="$T/record/c15"
 run_config "$REC" "$T/home-c15" nonsense
 rc=$?
@@ -184,7 +184,7 @@ run_config "$REC" "$T/home-c15" opencode frobnicate apt nc
 rc=$?
 exit_code_is "$rc" 1 "unknown action refused"
 
-echo "=== C16: a malformed overlay is reported with its position ==="
+section "C16: a malformed overlay is reported with its position"
 REC="$T/record/c16"
 HOME_C16="$T/home-c16"
 mkdir -p "$HOME_C16/.secure-ai/opencode"
@@ -194,7 +194,7 @@ rc=$?
 exit_code_is "$rc" 1 "refused"
 has_pattern "$REC/stderr.txt" 'components\.conf:3: expected' "points at the bad line"
 
-echo "=== C17: an overlay removing a required package cannot drop it ==="
+section "C17: an overlay removing a required package cannot drop it"
 REC="$T/record/c17"
 HOME_C17="$T/home-c17"
 mkdir -p "$HOME_C17/.secure-ai/opencode"
@@ -205,7 +205,7 @@ exit_code_is "$rc" 0 "show succeeds"
 has_pattern "$REC/stderr.txt" "removes the required package 'jq'" "warns"
 has_line "$REC/stdout.txt" "    jq (required)" "jq stays required"
 
-echo "=== C18: reset asks for confirmation, drops the overlay and rebuilds with the defaults ==="
+section "C18: reset asks for confirmation, drops the overlay and rebuilds with the defaults"
 REC="$T/record/c18"
 HOME_C18="$T/home-c18"
 run_config "$REC" "$HOME_C18" claude-code add apt nc </dev/null
@@ -218,7 +218,7 @@ path_absent "$(overlay_of "$HOME_C18" claude-code)" "overlay removed"
 has_pattern "$REC/build.args" '^APT_PACKAGES=.*\bvim\b' "rebuild brings the removed default back"
 has_no_pattern "$REC/build.args" '^APT_PACKAGES=.*\bnc\b' "rebuild drops the added package"
 
-echo "=== C19: declining or EOF at the reset confirmation changes nothing ==="
+section "C19: declining or EOF at the reset confirmation changes nothing"
 REC="$T/record/c19"
 HOME_C19="$T/home-c19"
 run_config "$REC" "$HOME_C19" claude-code add apt nc </dev/null
@@ -232,7 +232,7 @@ rc=$?
 exit_code_is "$rc" 1 "EOF aborts"
 has_line "$(overlay_of "$HOME_C19" claude-code)" "add apt nc" "overlay kept"
 
-echo "=== C20: reset without customizations asks nothing and rebuilds nothing ==="
+section "C20: reset without customizations asks nothing and rebuilds nothing"
 REC="$T/record/c20"
 run_config "$REC" "$T/home-c20" claude-code reset </dev/null
 rc=$?
@@ -241,7 +241,7 @@ has_pattern "$REC/stderr.txt" 'Nothing to change' "says nothing changed"
 has_no_pattern "$REC/stderr.txt" '\[y/N\]' "no prompt"
 path_absent "$REC/build.args" "no rebuild"
 
-echo "=== C21: reset needs Docker and a valid command line ==="
+section "C21: reset needs Docker and a valid command line"
 REC="$T/record/c21"
 FAKE_DOCKER_DOWN=1 run_config "$REC" "$HOME_C19" claude-code reset </dev/null
 rc=$?
@@ -254,7 +254,7 @@ run_config "$REC" "$HOME_C19" claude-code reset extra </dev/null
 rc=$?
 exit_code_is "$rc" 1 "reset with extra arguments refused"
 
-echo "=== C22: reset repairs a malformed overlay ==="
+section "C22: reset repairs a malformed overlay"
 REC="$T/record/c22"
 HOME_C22="$T/home-c22"
 mkdir -p "$HOME_C22/.secure-ai/opencode"
@@ -264,7 +264,7 @@ rc=$?
 exit_code_is "$rc" 0 "reset succeeds"
 path_absent "$(overlay_of "$HOME_C22" opencode)" "malformed overlay removed"
 
-echo "=== C23: 'all reset' resets only the customized tools, after a single confirmation ==="
+section "C23: 'all reset' resets only the customized tools, after a single confirmation"
 REC="$T/record/c23"
 HOME_C23="$T/home-c23"
 run_config "$REC" "$HOME_C23" claude-code add apt nc </dev/null
@@ -290,7 +290,7 @@ rc=$?
 exit_code_is "$rc" 0 "nothing customized: succeeds without a prompt"
 has_pattern "$REC/stderr.txt" 'Nothing to change' "says nothing changed"
 
-echo "=== C24: 'all add' adds to every tool and rebuilds each image ==="
+section "C24: 'all add' adds to every tool and rebuilds each image"
 REC="$T/record/c24"
 HOME_C24="$T/home-c24"
 run_config "$REC" "$HOME_C24" all add apt nc,htop
@@ -301,7 +301,7 @@ has_line "$(overlay_of "$HOME_C24" opencode)" "add apt htop" "opencode overlay r
 has_pattern "$REC/build.args" 'claude-code-sandbox' "claude-code image rebuilt"
 has_line "$REC/build.args" "OPENCODE_TAG=v2.0.14" "opencode image rebuilt"
 
-echo "=== C25: 'all remove' removes a package listed by every tool ==="
+section "C25: 'all remove' removes a package listed by every tool"
 REC="$T/record/c25"
 run_config "$REC" "$HOME_C24" all remove apt nc
 rc=$?
@@ -309,7 +309,7 @@ exit_code_is "$rc" 0 "succeeds"
 has_no_pattern "$(overlay_of "$HOME_C24" claude-code)" 'nc' "claude-code overlay no longer mentions nc"
 has_line "$(overlay_of "$HOME_C24" opencode)" "add apt htop" "other additions kept"
 
-echo "=== C26: 'all remove' skips, with a message, the tools that don't list the package ==="
+section "C26: 'all remove' skips, with a message, the tools that don't list the package"
 REC="$T/record/c26"
 HOME_C26="$T/home-c26"
 run_config "$REC" "$HOME_C26" all remove npm cypress
@@ -321,7 +321,7 @@ has_pattern "$REC/stderr.txt" "Skipping opencode: 'cypress' is not in its npm li
 has_pattern "$REC/build.args" 'claude-code-sandbox' "claude-code image rebuilt"
 has_no_pattern "$REC/build.args" 'OPENCODE_TAG' "opencode image not rebuilt"
 
-echo "=== C27: 'all remove' removes where it can and warns where the package is required ==="
+section "C27: 'all remove' removes where it can and warns where the package is required"
 REC="$T/record/c27"
 HOME_C27="$T/home-c27"
 run_config "$REC" "$HOME_C27" all remove apt jq
@@ -332,7 +332,7 @@ path_absent "$(overlay_of "$HOME_C27" opencode)" "opencode untouched"
 has_pattern "$REC/stderr.txt" "Warning: cannot remove 'jq' from opencode" "warns about the tool that requires it"
 has_no_pattern "$REC/build.args" 'OPENCODE_TAG' "opencode image not rebuilt"
 
-echo "=== C28: 'all remove' of a package no tool lists only warns ==="
+section "C28: 'all remove' of a package no tool lists only warns"
 REC="$T/record/c28"
 run_config "$REC" "$T/home-c28" all remove apt nonsense
 rc=$?
@@ -340,7 +340,7 @@ exit_code_is "$rc" 0 "succeeds"
 has_pattern "$REC/stderr.txt" 'no package could be removed from any tool' "warns"
 path_absent "$REC/build.args" "no rebuild"
 
-echo "=== C29: 'all' validates every tool before writing anything ==="
+section "C29: 'all' validates every tool before writing anything"
 REC="$T/record/c29"
 HOME_C29="$T/home-c29"
 mkdir -p "$HOME_C29/.secure-ai/opencode"
@@ -359,7 +359,7 @@ rc=$?
 exit_code_is "$rc" 1 "refused with Docker down"
 path_absent "$(overlay_of "$T/home-c29b" claude-code)" "nothing written without Docker"
 
-echo "=== C30: 'reset' needs an explicit tool or 'all'; 'all remove' validates names ==="
+section "C30: 'reset' needs an explicit tool or 'all'; 'all remove' validates names"
 REC="$T/record/c30"
 run_config "$REC" "$T/home-c30" reset </dev/null
 rc=$?

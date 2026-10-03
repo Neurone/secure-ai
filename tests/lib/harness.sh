@@ -47,9 +47,19 @@ PATH_WITHOUT_NATIVE="$(
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
 
+# Progress is one character per assertion (a dot, or F for a failure), like
+# unittest; the failures are described at the end, by finish_tests.
 FAILURES=0
-pass() { echo "  PASS: $1"; }
-fail() { echo "  FAIL: $1"; FAILURES=$((FAILURES + 1)); }
+PASSES=0
+CURRENT_SECTION=""
+FAILURE_REPORTS=()
+section() { CURRENT_SECTION="$1"; }
+pass() { printf '.'; PASSES=$((PASSES + 1)); }
+fail() {
+  printf 'F'
+  FAILURES=$((FAILURES + 1))
+  FAILURE_REPORTS+=("[$CURRENT_SECTION] $1")
+}
 
 # Assert an exact line exists in a file.
 has_line() {
@@ -104,9 +114,13 @@ link_points_to() {
 finish_tests() {
   echo
   if [ "$FAILURES" -eq 0 ]; then
-    echo "All tests passed."
+    echo "All $PASSES tests passed."
   else
-    echo "$FAILURES test(s) FAILED."
+    local failure_report
+    for failure_report in "${FAILURE_REPORTS[@]}"; do
+      echo "  FAIL: $failure_report"
+    done
+    echo "$FAILURES of $((PASSES + FAILURES)) test(s) FAILED."
     exit 1
   fi
 }

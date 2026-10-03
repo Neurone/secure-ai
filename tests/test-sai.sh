@@ -7,21 +7,21 @@
 # shellcheck source=lib/harness.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib/harness.sh"
 
-echo "=== D1: no command -> usage ==="
+section "D1: no command -> usage"
 REC="$T/record/d1"
 run_sai "$REC" "$T/home-d1"
 rc=$?
 exit_code_is "$rc" 1 "refused"
 has_pattern "$REC/stderr.txt" 'Usage: sai <command>' "usage printed on stderr"
 
-echo "=== D2: unknown command -> usage ==="
+section "D2: unknown command -> usage"
 REC="$T/record/d2"
 run_sai "$REC" "$T/home-d2" nonsense
 rc=$?
 exit_code_is "$rc" 1 "refused"
 has_pattern "$REC/stderr.txt" 'Usage: sai <command>' "usage printed on stderr"
 
-echo "=== D3: help lists every command ==="
+section "D3: help lists every command"
 for help_arg in help -h --help; do
   REC="$T/record/d3"
   run_sai "$REC" "$T/home-d3" "$help_arg"
@@ -32,7 +32,7 @@ for help_arg in help -h --help; do
   done
 done
 
-echo "=== D4: unknown test suite ==="
+section "D4: unknown test suite"
 REC="$T/record/d4"
 run_sai "$REC" "$T/home-d4" test nonsense
 rc=$?
@@ -40,7 +40,7 @@ exit_code_is "$rc" 1 "refused"
 has_pattern "$REC/stderr.txt" "unknown test suite 'nonsense'" "says which suite is unknown"
 has_pattern "$REC/stderr.txt" 'Usage: sai test \[lint\|.*install' "lists the linter and the valid suites"
 
-echo "=== D5: shortcuts reach their commands ==="
+section "D5: shortcuts reach their commands"
 REC="$T/record/d5"
 run_sai "$REC" "$T/home-d5" s
 rc=$?
@@ -63,7 +63,7 @@ rc=$?
 exit_code_is "$rc" 0 "'h' prints help"
 has_pattern "$REC/stdout.txt" 'Usage: sai <command>' "'h' reaches the help"
 
-echo "=== D6: a missing library file is reported through the log functions ==="
+section "D6: a missing library file is reported through the log functions"
 REC="$T/record/d6"
 mkdir -p "$T/sai-copy"
 cp "$SAI" "$T/sai-copy/"
@@ -74,7 +74,7 @@ rc=$?
 exit_code_is "$rc" 1 "refused"
 has_pattern "$REC.stderr" 'Error: could not find required file at .*/lib/components\.sh$' "reported like any other error"
 
-echo "=== D7: sai test lint runs shellcheck on every script ==="
+section "D7: sai test lint runs shellcheck on every script"
 REC="$T/record/d7"
 FAKE_DOCKER_RECORD="$REC" run_sai "$REC" "$T/home-d7" test lint
 rc=$?
@@ -88,7 +88,7 @@ has_no_pattern "$REC/shellcheck.args" '/\.git/' "skips the .git directory"
 has_no_pattern "$REC/stdout.txt" '^##### (sai|install|status|config|claude-code|opencode)$' "runs no test suite"
 has_line "$REC/stdout.txt" "All suites passed." "reports success"
 
-echo "=== D8: sai test lint fails when shellcheck reports findings ==="
+section "D8: sai test lint fails when shellcheck reports findings"
 REC="$T/record/d8"
 FAKE_SHELLCHECK_FAIL=1 FAKE_DOCKER_RECORD="$REC" run_sai "$REC" "$T/home-d8" test lint
 rc=$?
@@ -96,7 +96,7 @@ exit_code_is "$rc" 1 "refused"
 has_line "$REC/stdout.txt" "FAILED suites: lint" "names the linter as failed"
 has_pattern "$REC/stderr.txt" 'fake shellcheck: findings' "shows shellcheck's output"
 
-echo "=== D9: sai test lint fails loudly without shellcheck ==="
+section "D9: sai test lint fails loudly without shellcheck"
 REC="$T/record/d9"
 mkdir -p "$REC" "$T/bin-no-shellcheck"
 for tool in basename dirname find grep sort; do

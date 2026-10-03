@@ -26,7 +26,7 @@ run_gitconfig_mount() {
   HOME="$scenario_dir/home" append_filtered_gitconfig_mount
 }
 
-echo "=== G1: every credential section is dropped, identity and aliases are kept ==="
+section "G1: every credential section is dropped, identity and aliases are kept"
 run_gitconfig_mount g1 '[user]
 	name = Test User
 [credential]
@@ -45,12 +45,12 @@ has_pattern "$GITCONFIG_ORIGINAL" 'osxkeychain' "the host file is untouched"
 content_is <(printf '%s\n' "${MOUNT_ARGS[@]}") "-v
 $GITCONFIG_COPY:/home/node/.gitconfig:ro" "the copy is mounted read-only"
 
-echo "=== G2: a config without credential sections is copied as it is ==="
+section "G2: a config without credential sections is copied as it is"
 run_gitconfig_mount g2 '[user]
 	name = Test User'
 content_is "$GITCONFIG_COPY" "$(cat "$GITCONFIG_ORIGINAL")" "copy equals the original"
 
-echo "=== G3: no ~/.gitconfig -> nothing mounted ==="
+section "G3: no ~/.gitconfig -> nothing mounted"
 run_gitconfig_mount g3 ""
 path_absent "$GITCONFIG_COPY" "no copy made"
 content_is <(echo "${#MOUNT_ARGS[@]}") "0" "no mount argument"

@@ -188,6 +188,8 @@ Adding a tool means adding a `tools/<name>/` directory with a `tool.sh` (binary 
 ./sai test status    # a single suite: sai, install, status, config, runtime, claude-code or opencode
 ```
 
+Each suite shows its progress as one dot per passing assertion (`F` for a failing one); the failures are listed, with their scenario, at the end of the suite.
+
 The linter runs [ShellCheck](https://www.shellcheck.net) on `sai` and every `*.sh` file, with the options in `.shellcheckrc`; a warning that is a false positive is silenced on its own line with a `# shellcheck disable=...` comment saying why. The test suites cover the wrappers, `sai install`, `sai uninstall`, `sai status`, `sai config` and the container entrypoints with fake `docker`, `git`, `security`, `uname` and `shellcheck` executables, so it needs no Docker daemon, no network, no macOS keychain and no installed claude or opencode. The scenarios without a native install strip any real `claude`/`opencode` from `PATH`, so they behave the same on a machine that has them. Running `sai test` requires `jq` and `shellcheck`.
 
 ## License

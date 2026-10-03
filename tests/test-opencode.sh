@@ -116,7 +116,7 @@ EOF
 # ---------------------------------------------------------------------------
 # S1: up-to-date image -> plain run, full mount allowlist, nothing native
 # ---------------------------------------------------------------------------
-echo "=== S1: up-to-date image, full mount allowlist ==="
+section "S1: up-to-date image, full mount allowlist"
 REC="$T/record/s1"
 SANDBOX="$T/home/.secure-ai/opencode"
 FAKE_TAGS_V2="v2.0.14" FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=0 \
@@ -160,7 +160,7 @@ fi
 # ---------------------------------------------------------------------------
 # S2: newer upstream release -> build then run (numeric tag sort check)
 # ---------------------------------------------------------------------------
-echo "=== S2: newer upstream release, build then run ==="
+section "S2: newer upstream release, build then run"
 REC="$T/record/s2"
 FAKE_TAGS_V2="v2.0.9 v2.0.15 v2.1.0" FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=0 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -175,7 +175,7 @@ if [ -e "$REC/run.args" ]; then pass "container run proceeded"; else fail "conta
 # ---------------------------------------------------------------------------
 # S3: offline, cached image available -> continue with cache
 # ---------------------------------------------------------------------------
-echo "=== S3: offline with cached image ==="
+section "S3: offline with cached image"
 REC="$T/record/s3"
 FAKE_TAGS_V2='' FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=1 FAKE_BUILD_FAIL=0 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -188,7 +188,7 @@ if [ -e "$REC/run.args" ]; then pass "container run proceeded"; else fail "conta
 # ---------------------------------------------------------------------------
 # S4: offline, no image -> clean error
 # ---------------------------------------------------------------------------
-echo "=== S4: offline, no image ==="
+section "S4: offline, no image"
 REC="$T/record/s4"
 FAKE_TAGS_V2='' FAKE_IMAGE_STATE=absent FAKE_GIT_FAIL=1 FAKE_BUILD_FAIL=0 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -200,7 +200,7 @@ if [ -e "$REC/run.args" ]; then fail "no container run"; else pass "no container
 # ---------------------------------------------------------------------------
 # S5: online but no stable tag on the line, cached image -> continue
 # ---------------------------------------------------------------------------
-echo "=== S5: no stable v2 tag, cached image ==="
+section "S5: no stable v2 tag, cached image"
 REC="$T/record/s5"
 FAKE_TAGS_V2='' FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=0 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -213,7 +213,7 @@ if [ -e "$REC/run.args" ]; then pass "container run proceeded"; else fail "conta
 # ---------------------------------------------------------------------------
 # S6: newer major available -> notice only
 # ---------------------------------------------------------------------------
-echo "=== S6: newer major available, notice only ==="
+section "S6: newer major available, notice only"
 REC="$T/record/s6"
 FAKE_TAGS_V2="v2.0.14" FAKE_TAGS_V3="v3.1.0" FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=0 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -222,13 +222,13 @@ if [ "$rc" = 0 ]; then pass "exit 0"; else fail "exit 0 (got $rc)"; fi
 has_pattern "$REC/stderr.txt" "opencode v3\.1\.0 is available upstream" "newer-major notice printed"
 if [ -e "$REC/build.args" ]; then fail "no build for the newer major"; else pass "no build for the newer major"; fi
 
-echo "=== S6b: a launch asks upstream for its tags once, whatever the lines it looks at ==="
+section "S6b: a launch asks upstream for its tags once, whatever the lines it looks at"
 content_is <(wc -l < "$REC/git.calls" | tr -d ' ') "1" "one ls-remote round trip"
 
 # ---------------------------------------------------------------------------
 # S7: a host OPENCODE_CONFIG belongs to the native install -> ignored entirely
 # ---------------------------------------------------------------------------
-echo "=== S7: OPENCODE_CONFIG ignored ==="
+section "S7: OPENCODE_CONFIG ignored"
 REC="$T/record/s7"
 FAKE_TAGS_V2="v2.0.14" FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=0 \
   OPENCODE_CONFIG="$T/custom-oc.json" run_oc "$REC"
@@ -241,7 +241,7 @@ has_no_pattern "$REC/run.args" "$T/plugins" "its plugins not mounted"
 # ---------------------------------------------------------------------------
 # S8: build failure, cached image -> fallback
 # ---------------------------------------------------------------------------
-echo "=== S8: build failure with cached image ==="
+section "S8: build failure with cached image"
 REC="$T/record/s8"
 FAKE_TAGS_V2="v2.0.15" FAKE_IMAGE_VERSION="v2.0.14" FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=1 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -253,7 +253,7 @@ if [ -e "$REC/run.args" ]; then pass "container run proceeded"; else fail "conta
 # ---------------------------------------------------------------------------
 # S9: build failure, no image -> clean error
 # ---------------------------------------------------------------------------
-echo "=== S9: build failure, no image ==="
+section "S9: build failure, no image"
 REC="$T/record/s9"
 FAKE_TAGS_V2="v2.0.15" FAKE_IMAGE_STATE=absent FAKE_GIT_FAIL=0 FAKE_BUILD_FAIL=1 \
   OPENCODE_CONFIG='' run_oc "$REC"
@@ -266,7 +266,7 @@ if [ -e "$REC/run.args" ]; then fail "no container run"; else pass "no container
 # S15: the sandbox dirs are the sandbox's own: kept across runs, and shared by
 # wrappers started together
 # ---------------------------------------------------------------------------
-echo "=== S15: sandbox dirs persist and are shared ==="
+section "S15: sandbox dirs persist and are shared"
 PERSIST_HOME="$T/home-persist"
 PERSIST_SANDBOX="$PERSIST_HOME/.secure-ai/opencode"
 mkdir -p "$PERSIST_SANDBOX/config" "$PERSIST_SANDBOX/state"
@@ -298,7 +298,7 @@ done
 # through OPENCODE_CONFIG_CONTENT, argument passthrough, stdin inheritance,
 # signal forwarding, status propagation
 # ---------------------------------------------------------------------------
-echo "=== S16: entrypoint state, banner, run loop, signals ==="
+section "S16: entrypoint state, banner, run loop, signals"
 ENTRYPOINT="$REPO_DIR/tools/opencode/container/entrypoint.sh"
 T16="$T/entry"
 mkdir -p "$T16/home/.config/opencode" \
@@ -458,7 +458,7 @@ has_pattern "$T16/record/s16nobanner/stderr.txt" "sandbox banner source" "clear 
 # Each instance runs a private server (--standalone) when the command has the
 # flag, so concurrent containers don't take over each other's background
 # service; the caller's own choice of server is respected.
-echo "=== S17: private server per instance ==="
+section "S17: private server per instance"
 entrypoint_args_for() {
   local record="$T16/record/s17"
   mkdir -p "$record"

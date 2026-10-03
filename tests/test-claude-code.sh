@@ -49,7 +49,7 @@ mkdir -p "$BARE_HOME"
 # ---------------------------------------------------------------------------
 # W1: nothing configured on the host
 # ---------------------------------------------------------------------------
-echo "=== W1: bare host ==="
+section "W1: bare host"
 REC="$T/record/w1"
 BARE_CONFIG_DIR="$BARE_HOME/.secure-ai/claude-code/config"
 run_claude "$REC" "$BARE_HOME" ""
@@ -69,7 +69,7 @@ has_line "$REC/run.args" "claude-code-sandbox" "image reference"
 # ---------------------------------------------------------------------------
 # W1b: Docker daemon not running
 # ---------------------------------------------------------------------------
-echo "=== W1b: Docker daemon not running ==="
+section "W1b: Docker daemon not running"
 REC="$T/record/w1b"
 FAKE_DOCKER_DOWN=1 run_claude "$REC" "$BARE_HOME" ""
 rc=$?
@@ -80,7 +80,7 @@ path_absent "$REC/run.args" "no container started"
 # ---------------------------------------------------------------------------
 # W1c: Linux host
 # ---------------------------------------------------------------------------
-echo "=== W1c: Linux host does not query the macOS keychain ==="
+section "W1c: Linux host does not query the macOS keychain"
 REC="$T/record/w1c"
 FAKE_UNAME_S=Linux run_claude "$REC" "$BARE_HOME" ""
 rc=$?
@@ -90,7 +90,7 @@ path_absent "$REC/security.calls" "keychain not queried"
 # ---------------------------------------------------------------------------
 # W2: isolation from a native claude and its data
 # ---------------------------------------------------------------------------
-echo "=== W2: configured host with a native claude ==="
+section "W2: configured host with a native claude"
 REC="$T/record/w2"
 rm -f "$NATIVE_CALLS"
 run_claude "$REC" "$CONFIGURED_HOME" "$T/native"
@@ -112,7 +112,7 @@ fi
 # ---------------------------------------------------------------------------
 # W3: image build only when the image is absent
 # ---------------------------------------------------------------------------
-echo "=== W3: image absent -> build ==="
+section "W3: image absent -> build"
 REC="$T/record/w3"
 FAKE_IMAGE_STATE=absent run_claude "$REC" "$BARE_HOME" ""
 rc=$?
@@ -125,7 +125,7 @@ path_exists "$REC/run.args" "container run proceeded"
 # W4: no CA bundle exported -> empty arg arrays must not trip `set -u`
 # (bash 3.2, the macOS default, rejects expanding an empty array)
 # ---------------------------------------------------------------------------
-echo "=== W4: CA export fails ==="
+section "W4: CA export fails"
 REC="$T/record/w4"
 FAKE_CERTS_FAIL=1 run_claude "$REC" "$BARE_HOME" ""
 rc=$?
@@ -136,7 +136,7 @@ has_no_pattern "$REC/run.args" 'ca-certificates\.crt' "no CA bundle mount"
 # ---------------------------------------------------------------------------
 # W5: the config dir is the sandbox's own: kept across runs, never rewritten
 # ---------------------------------------------------------------------------
-echo "=== W5: config dir persistence ==="
+section "W5: config dir persistence"
 STATE_HOME="$T/home-state"
 STATE_CONFIG_DIR="$STATE_HOME/.secure-ai/claude-code/config"
 mkdir -p "$STATE_CONFIG_DIR"
@@ -151,7 +151,7 @@ has_line "$REC/run.args" "-v $STATE_CONFIG_DIR:$STATE_CONFIG_DIR" "same dir moun
 # ---------------------------------------------------------------------------
 # W6: wrappers started together share one config dir
 # ---------------------------------------------------------------------------
-echo "=== W6: concurrent wrappers share one config dir ==="
+section "W6: concurrent wrappers share one config dir"
 RACE_HOME="$T/home-race"
 RACE_CONFIG_DIR="$RACE_HOME/.secure-ai/claude-code/config"
 mkdir -p "$RACE_HOME"
@@ -189,7 +189,7 @@ run_entrypoint() {
       sh "$ENTRYPOINT" "$@" >"$record/stdout.txt" 2>"$record/stderr.txt"
 }
 
-echo "=== E1a: saved login -> no hint, arguments passed through ==="
+section "E1a: saved login -> no hint, arguments passed through"
 REC="$T/record/e1a"
 E_CONFIG="$T/econfig-a"
 mkdir -p "$E_CONFIG"
@@ -201,7 +201,7 @@ has_no_pattern "$REC/stderr.txt" 'sign in' "no login hint when credentials exist
 content_is "$REC/claude.calls" "call -p hello" "claude called once, with the arguments only (no update, no version query)"
 content_is "$E_CONFIG/.credentials.json" '{"own":true}' "credentials untouched"
 
-echo "=== E1b: no login yet -> hint, claude still starts ==="
+section "E1b: no login yet -> hint, claude still starts"
 REC="$T/record/e1b"
 run_entrypoint "$REC" "$T/econfig-b"
 rc=$?
@@ -209,7 +209,7 @@ exit_code_is "$rc" 0 "entrypoint still starts claude"
 has_pattern "$REC/stderr.txt" 'sign in inside the container' "hint printed"
 path_exists "$REC/claude.calls" "claude launched"
 
-echo "=== E1c: CLAUDE_CONFIG_DIR missing -> fail fast ==="
+section "E1c: CLAUDE_CONFIG_DIR missing -> fail fast"
 REC="$T/record/e1c"
 mkdir -p "$REC"
 env -u CLAUDE_CONFIG_DIR FAKE_CLAUDE_CALLS="$REC/claude.calls" PATH="$T/entrypoint-bin:$PATH" \
