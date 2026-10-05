@@ -18,10 +18,10 @@ opencode's four directories are host directories of the sandbox, under `~/.secur
 
 | Host | Container | Holds |
 |---|---|---|
-| `config/` | `~/.config/opencode` | `opencode.json(c)`, `cli.json` (theme, keybinds, plugin list), the background-service config, `agents/`, `commands/`, `plugins/`, `skills/`, `themes/` |
-| `data/` | `~/.local/share/opencode` | the session database (in v2 it also holds the provider credentials), logs |
-| `state/` | `~/.local/state/opencode` | UI state (selected model, prompt history), file locks |
-| `cache/` | `~/.cache/opencode` | npm-installed plugins |
+| `~/.secure-ai/opencode/config/` | `~/.config/opencode` | `opencode.json(c)`, `cli.json` (theme, keybinds, plugin list), the background-service config, `agents/`, `commands/`, `plugins/`, `skills/`, `themes/` |
+| `~/.secure-ai/opencode/data/` | `~/.local/share/opencode` | the session database (in v2 it also holds the provider credentials), logs |
+| `~/.secure-ai/opencode/state/` | `~/.local/state/opencode` | UI state (selected model, prompt history), file locks |
+| `~/.secure-ai/opencode/cache/` | `~/.cache/opencode` | npm-installed plugins |
 
 They are shared by every sandbox instance and can be read and edited from the host. Whole-directory mounts also let opencode save files through `rename()` (which fails on a bind-mounted single file).
 
@@ -49,9 +49,25 @@ This setup is built with a local model provider in mind: LM Studio, Ollama, or a
 ```jsonc
 {
   "providers": {
+    // Models auto-discovery enabled for predefined providers: "lmstudio", "ollama", and "vllm"
     "lmstudio": {
+      "package": "@opencode/ai/providers/openai-compatible",
       "settings": {
         "baseURL": "{env:OPENCODE_LMSTUDIO_BASEURL}"
+      }
+    },
+    // Custom provider example (must specify the model list)
+    "oMLX": {
+      "name": "oMLX",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "apiKey": "1234",
+        "baseURL": "http://host.docker.internal:8000/v1"
+      },
+      "models": {
+        "Qwen3.8-27B-MLX-4bit": {
+          "name": "Qwen 3.8 27B MLX 4bit"
+	      }
       }
     }
   }
