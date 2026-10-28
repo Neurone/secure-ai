@@ -3,7 +3,7 @@
 # and build script (packages/cli/script/build.ts) their own release CI uses.
 # Bun and the full monorepo checkout never make it into the final image --
 # only the resulting single binary does (see the final stage below).
-FROM oven/bun:1.4.2-slim AS builder
+FROM oven/bun:1.4.4-slim AS builder
 
 ARG OPENCODE_TAG
 ARG OPENCODE_TARGET
@@ -31,7 +31,7 @@ RUN OPENCODE_VERSION="${OPENCODE_TAG#v}" bun ./script/build.ts --target="opencod
 
 # Final stage: the image actually run day to day, on a lightweight base that
 # only receives the compiled binary.
-FROM node:24-slim
+FROM node:lts-trixie-slim
 
 ARG OPENCODE_TAG
 ARG OPENCODE_TARGET

@@ -1,4 +1,4 @@
-FROM node:24-slim
+FROM node:lts-trixie-slim
 
 # The container is meant to be run with an arbitrary host UID (--user), which
 # is not known at build time. Everything under $HOME is therefore assigned to
